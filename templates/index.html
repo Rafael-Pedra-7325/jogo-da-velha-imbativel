@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogo da Velha Imbatível — IA Minimax & Poda Alfa-Beta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <main class="app-container">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-badge">MINIMAX + ALFA-BETA</span>
+        <h1>Jogo da Velha <span>Imbatível</span></h1>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="btn-som" class="icon-btn" title="Alternar efeitos sonoros" aria-label="Alternar som">
+          🔊
+        </button>
+        <button id="btn-raiox" class="pill-btn" title="Ver avaliação Minimax de cada casa">
+          <span class="dot"></span> Visão da IA
+        </button>
+        <button id="btn-dica" class="pill-btn pill-accent" title="Destacar a melhor jogada agora">
+          ✨ Dica
+        </button>
+      </div>
+    </header>
+
+    <section class="scoreboard" aria-label="Placar da sessão">
+      <div class="score-card score-win">
+        <span class="score-label">Vitórias</span>
+        <strong id="placar-vitorias">0</strong>
+      </div>
+      <div class="score-card score-draw">
+        <span class="score-label">Empates</span>
+        <strong id="placar-empates">0</strong>
+      </div>
+      <div class="score-card score-loss">
+        <span class="score-label">IA Venceu</span>
+        <strong id="placar-derrotas">0</strong>
+      </div>
+      <div class="score-card score-streak">
+        <span class="score-label">Invencibilidade</span>
+        <strong id="placar-sequencia">0</strong>
+      </div>
+    </section>
+
+    <section class="game-layout">
+      <aside class="panel controls-panel">
+        <div class="control-group">
+          <label>Nível da IA</label>
+          <div class="segmented" id="grupo-dificuldade">
+            <button type="button" data-value="facil">Fácil</button>
+            <button type="button" data-value="medio">Médio</button>
+            <button type="button" data-value="imbativel" class="active">Imbatível</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Seu Símbolo</label>
+          <div class="segmented" id="grupo-simbolo">
+            <button type="button" data-value="X" class="active">Jogar com X</button>
+            <button type="button" data-value="O">Jogar com O</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Quem Começa</label>
+          <div class="segmented" id="grupo-inicio">
+            <button type="button" data-value="humano" class="active">Você</button>
+            <button type="button" data-value="ia">IA</button>
+            <button type="button" data-value="alternar">Alternar</button>
+          </div>
+        </div>
+
+        <div class="panel-footer-actions">
+          <button id="btn-reiniciar" class="primary-btn">
+            ↻ Nova Partida
+          </button>
+          <button id="btn-zerar-placar" class="ghost-btn">
+            Zerar Placar
+          </button>
+        </div>
+      </aside>
+
+      <section class="board-wrapper">
+        <div id="status-banner" class="status-banner turno-humano">
+          <span id="status-texto">Sua vez! Escolha uma casa no tabuleiro.</span>
+        </div>
+
+        <div class="board-container">
+          <div id="tabuleiro" class="board" role="grid" aria-label="Tabuleiro 3 por 3"></div>
+          <svg id="linha-vitoria-svg" class="win-line-svg" viewBox="0 0 300 300" preserveAspectRatio="none">
+            <line id="linha-vitoria" x1="0" y1="0" x2="0" y2="0" />
+          </svg>
+        </div>
+
+        <p class="keyboard-hint">
+          Atalhos: teclas <kbd>1</kbd>–<kbd>9</kbd> para jogar rápido • <kbd>R</kbd> para nova partida
+        </p>
+      </section>
+
+      <aside class="panel telemetry-panel">
+        <div class="telemetry-header">
+          <span class="pulse-indicator"></span>
+          <h2>Cérebro da IA</h2>
+        </div>
+
+        <div class="telemetry-stats">
+          <div class="stat-box">
+            <span class="stat-title">Estados Analisados</span>
+            <span id="tel-nos" class="stat-value mono">—</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-title">Tempo de Busca</span>
+            <span id="tel-tempo" class="stat-value mono">—</span>
+          </div>
+        </div>
+
+        <div class="diagnosis-box">
+          <span class="stat-title">Diagnóstico Tático</span>
+          <p id="tel-motivo">Aguardando primeira jogada para iniciar a árvore de busca.</p>
+        </div>
+
+        <div class="history-box">
+          <span class="stat-title">Histórico da Partida</span>
+          <ol id="lista-historico" class="move-history">
+            <li class="empty-history">Nenhum lance realizado ainda.</li>
+          </ol>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
