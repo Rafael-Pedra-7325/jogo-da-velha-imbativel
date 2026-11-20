@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jogo da Velha Imbatível — IA Minimax & Poda Alfa-Beta</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <title>Jogo da Velha Imbatível — Minimax & Super Velha MCTS</title>
+  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)" />
+  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin />
+  <link href="[https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap)" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
@@ -16,15 +16,18 @@
   <main class="app-container">
     <header class="topbar">
       <div class="brand">
-        <span class="brand-badge">MINIMAX + ALFA-BETA</span>
+        <span id="badge-motor" class="brand-badge">MINIMAX + ALFA-BETA</span>
         <h1>Jogo da Velha <span>Imbatível</span></h1>
       </div>
 
       <div class="topbar-actions">
+        <button id="btn-regras" class="pill-btn" title="Ver regras do Super Jogo da Velha">
+          📜 Regras
+        </button>
         <button id="btn-som" class="icon-btn" title="Alternar efeitos sonoros" aria-label="Alternar som">
           🔊
         </button>
-        <button id="btn-raiox" class="pill-btn" title="Ver avaliação Minimax de cada casa">
+        <button id="btn-raiox" class="pill-btn" title="Ver avaliação da IA em cada casa livre">
           <span class="dot"></span> Visão da IA
         </button>
         <button id="btn-dica" class="pill-btn pill-accent" title="Destacar a melhor jogada agora">
@@ -35,19 +38,19 @@
 
     <section class="scoreboard" aria-label="Placar da sessão">
       <div class="score-card score-win">
-        <span class="score-label">Vitórias</span>
+        <span id="label-placar-1" class="score-label">Vitórias</span>
         <strong id="placar-vitorias">0</strong>
       </div>
       <div class="score-card score-draw">
-        <span class="score-label">Empates</span>
+        <span id="label-placar-empate" class="score-label">Empates</span>
         <strong id="placar-empates">0</strong>
       </div>
       <div class="score-card score-loss">
-        <span class="score-label">IA Venceu</span>
+        <span id="label-placar-2" class="score-label">IA Venceu</span>
         <strong id="placar-derrotas">0</strong>
       </div>
       <div class="score-card score-streak">
-        <span class="score-label">Invencibilidade</span>
+        <span id="label-placar-extra" class="score-label">Invencibilidade</span>
         <strong id="placar-sequencia">0</strong>
       </div>
     </section>
@@ -55,6 +58,22 @@
     <section class="game-layout">
       <aside class="panel controls-panel">
         <div class="control-group">
+          <label>Modo de Jogo</label>
+          <div class="segmented segmented-2" id="grupo-modo">
+            <button type="button" data-value="classico" class="active">Clássico 3×3</button>
+            <button type="button" data-value="super">Super 9×9</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Adversário</label>
+          <div class="segmented segmented-2" id="grupo-oponente">
+            <button type="button" data-value="ia" class="active">🤖 vs IA</button>
+            <button type="button" data-value="local">👥 2 Jogadores</button>
+          </div>
+        </div>
+
+        <div class="control-group" id="bloco-dificuldade">
           <label>Nível da IA</label>
           <div class="segmented" id="grupo-dificuldade">
             <button type="button" data-value="facil">Fácil</button>
@@ -64,8 +83,8 @@
         </div>
 
         <div class="control-group">
-          <label>Seu Símbolo</label>
-          <div class="segmented" id="grupo-simbolo">
+          <label id="label-simbolo">Seu Símbolo</label>
+          <div class="segmented segmented-2" id="grupo-simbolo">
             <button type="button" data-value="X" class="active">Jogar com X</button>
             <button type="button" data-value="O">Jogar com O</button>
           </div>
@@ -74,8 +93,8 @@
         <div class="control-group">
           <label>Quem Começa</label>
           <div class="segmented" id="grupo-inicio">
-            <button type="button" data-value="humano" class="active">Você</button>
-            <button type="button" data-value="ia">IA</button>
+            <button type="button" data-value="p1" class="active" id="btn-inicio-p1">Você</button>
+            <button type="button" data-value="p2" id="btn-inicio-p2">IA</button>
             <button type="button" data-value="alternar">Alternar</button>
           </div>
         </div>
@@ -95,14 +114,14 @@
           <span id="status-texto">Sua vez! Escolha uma casa no tabuleiro.</span>
         </div>
 
-        <div class="board-container">
-          <div id="tabuleiro" class="board" role="grid" aria-label="Tabuleiro 3 por 3"></div>
+        <div id="board-container" class="board-container">
+          <div id="tabuleiro" class="board" role="grid" aria-label="Tabuleiro do jogo"></div>
           <svg id="linha-vitoria-svg" class="win-line-svg" viewBox="0 0 300 300" preserveAspectRatio="none">
             <line id="linha-vitoria" x1="0" y1="0" x2="0" y2="0" />
           </svg>
         </div>
 
-        <p class="keyboard-hint">
+        <p id="keyboard-hint" class="keyboard-hint">
           Atalhos: teclas <kbd>1</kbd>–<kbd>9</kbd> para jogar rápido • <kbd>R</kbd> para nova partida
         </p>
       </section>
@@ -110,12 +129,12 @@
       <aside class="panel telemetry-panel">
         <div class="telemetry-header">
           <span class="pulse-indicator"></span>
-          <h2>Cérebro da IA</h2>
+          <h2 id="titulo-telemetria">Cérebro da IA</h2>
         </div>
 
         <div class="telemetry-stats">
           <div class="stat-box">
-            <span class="stat-title">Estados Analisados</span>
+            <span id="label-stat-nos" class="stat-title">Estados Analisados</span>
             <span id="tel-nos" class="stat-value mono">—</span>
           </div>
           <div class="stat-box">
@@ -138,6 +157,21 @@
       </aside>
     </section>
   </main>
+
+  <dialog id="modal-regras" class="rules-modal">
+    <div class="rules-content">
+      <div class="rules-header">
+        <h3>📜 Como Jogar o Super Jogo da Velha (9×9)</h3>
+        <button id="btn-fechar-regras" class="icon-btn" aria-label="Fechar">✕</button>
+      </div>
+      <ul>
+        <li><strong>Tabuleiro 9×9:</strong> São 9 mini-tabuleiros dentro de um tabuleiro maior. Vença 3 mini-tabuleiros em linha, coluna ou diagonal para vencer o jogo!</li>
+        <li><strong>Jogada Direcionada:</strong> A casa que você escolhe dentro de um mini-tabuleiro define <em>qual</em> mini-tabuleiro o oponente será obrigado a jogar no lance seguinte.</li>
+        <li><strong>Jogada Livre:</strong> Se você for enviado para um mini-tabuleiro que já foi vencido ou empatado, poderá jogar em <strong>qualquer</strong> casa livre de qualquer mini-tabuleiro aberto.</li>
+        <li><strong>Motor MCTS:</strong> No modo Super 9×9, a IA usa <em>Monte Carlo Tree Search</em>, simulando milhares de partidas futuras por segundo para calcular probabilidades reais de vitória.</li>
+      </ul>
+    </div>
+  </dialog>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
