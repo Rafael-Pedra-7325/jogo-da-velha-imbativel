@@ -6,7 +6,13 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from jogo import Tabuleiro
-from ia import melhor_jogada, analisar_jogadas
+from super_jogo import SuperTabuleiro
+from ia import (
+    melhor_jogada,
+    analisar_jogadas,
+    melhor_jogada_super,
+    analisar_jogadas_super,
+)
 from app import app
 
 IA = "O"
@@ -69,6 +75,52 @@ class MinimaxTestCase(unittest.TestCase):
         self.assertEqual(len(resultado["avaliacoes"]), 7)
 
 
+class SuperJogoMCTSTestCase(unittest.TestCase):
+    def test_direcionamento_de_sub_tabuleiro(self):
+        tab = SuperTabuleiro()
+        tab.jogar(0, 4, "X")
+        self.assertEqual(tab.sub_ativo, 4)
+        with self.assertRaises(ValueError):
+            tab.jogar(1, 0, "O")
+
+    def test_jogada_livre_quando_sub_alvo_ja_vencido(self):
+        tab = SuperTabuleiro()
+        # X vence o sub-tabuleiro 0
+        tab.jogar(0, 0, "X")
+        tab.jogar(0, 3, "O")
+        tab.jogar(3, 0, "X")
+        tab.jogar(0, 4, "O")
+        tab.jogar(4, 0, "X")
+        tab.jogar(0, 1, "X")
+        tab.jogar(1, 0, "O")
+        tab.jogar(0, 2, "X")  # X completa (0, 1, 2) no sub 0
+
+        self.assertEqual(tab.sub_vencedores[0], "X")
+        # O joga em qualquer sub aberto enviando para o sub 0 (já encerrado)
+        tab.jogar(2, 0, "O")
+        self.assertIsNone(tab.sub_ativo)
+
+    def test_mcts_vence_macro_em_um_lance(self):
+        celulas = [[" "] * 9 for _ in range(9)]
+        celulas[0] = ["O", "O", "O", " ", " ", " ", " ", " ", " "]
+        celulas[1] = ["O", "O", "O", " ", " ", " ", " ", " ", " "]
+        celulas[2] = ["O", "O", " ", " ", " ", " ", " ", " ", " "]
+        tab = SuperTabuleiro(celulas=celulas, sub_ativo=2)
+
+        lance, detalhes = melhor_jogada_super(tab, "O", "X", retornar_detalhes=True)
+        self.assertEqual(lance, (2, 2))
+        self.assertEqual(detalhes["taxa_vitoria"], 100.0)
+
+    def test_mcts_retorna_lance_valido_e_telemetria(self):
+        tab = SuperTabuleiro()
+        tab.jogar(4, 4, "X")
+        lance, detalhes = melhor_jogada_super(
+            tab, "O", "X", tempo_limite_s=0.08, retornar_detalhes=True
+        )
+        self.assertIn(lance, tab.jogadas_legais())
+        self.assertGreater(detalhes["simulacoes"], 50)
+
+
 class WebApiTestCase(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
@@ -97,6 +149,20 @@ class WebApiTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         dados = resp.get_json()
         self.assertEqual(dados["melhor_posicao"], 2)
+
+    def test_api_super_jogada_e_analise(self):
+        celulas = [[" "] * 9 for _ in range(9)]
+        celulas[4][4] = "X"
+        resp = self.client.post("/api/super/jogada", json={
+            "celulas": celulas,
+            "sub_ativo": 4,
+            "simbolo_ia": "O",
+            "dificuldade": "facil",
+        })
+        self.assertEqual(resp.status_code, 200)
+        dados = resp.get_json()
+        self.assertEqual(dados["lance"][0], 4)
+        self.assertGreater(dados["telemetria"]["simulacoes"], 0)
 
 
 if __name__ == "__main__":
